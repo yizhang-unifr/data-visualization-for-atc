@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Data Visualization I - ATC</title>
+
+        <!-- Bootstrap CSS -->
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.3/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <h1 class="text-center">Data Visualization I - ATC</h1>
+
+        <div id="map"></div>
+
+        <div id="tooltip">
+            Id: <span id="id" class="info"></span> <br>
+            Reg: <span id="reg" class="info"></span> <br>
+            From: <span id="from" class="info"></span> <br>
+            To: <span id="to" class="info"></span> <br>
+            Altitude: <span id="alt" class="info"></span> <br>
+            Latitude: <span id="lat" class="info"></span> <br>
+            Longtitude: <span id="long" class="info"></span> <br>
+            Time: <span id="time" class="info"></span> <br>
+        </div>
+
+        <!-- jQuery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://d3js.org/d3.v4.js"></script>
+        <script src="https://d3js.org/topojson.v1.js"></script>
+        <script src="script.js" ></script>
+        <!-- Bootstrap JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    </body>
+</html>
