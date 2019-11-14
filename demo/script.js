@@ -255,7 +255,8 @@ $(document).ready(function (){
 
                     .attr('stroke',d=>d.color)
                     .attr('stroke-width','.5px')
-                    .attr('stroke-dasharray','4 1');
+                    .attr('stroke-dasharray','4 1')
+                    .style('fill-opacity:0');
                      
         
             aircrafts.select('circle')
@@ -326,7 +327,8 @@ $(document).ready(function (){
                         return d
                     })
                     .attr('stroke',d=>d.color)
-                    .attr('stroke-width',1.5);
+                    .attr('stroke-width',1.5)
+                    .attr('fill','none');
         }
 
     });
