@@ -1,7 +1,7 @@
 $(document).ready(function (){
     var w = 1920;
     var h = 960;
-    var fi = 1;
+    var fi = 0;
 
     var projection = d3.geoConicConformal()
     .parallels([35, 65])
@@ -43,8 +43,14 @@ $(document).ready(function (){
                             .on('zoom',function(){
             
             g.attr('transform',d3.event.transform);
-            g.selectAll('path')
+            g.select('path')
              .attr('d',path.projection(projection));
+             /*
+            var group = g.selectAll('g')
+            group.attr('transform',d3.event.transform);
+            group.selectAll('path')
+            .attr('d',path.projection(projection));
+            */
         });
         svg.call(zoom);
         
@@ -75,8 +81,8 @@ $(document).ready(function (){
 
         svg.call(zoom);
         */
-
-        d3.json('../atc-data/0000Z.json', function(error,data){
+        
+        d3.json(getFileByIndex(fi), function(error,data){
             if (error) console.log(error);
             var aircrafts = data.data;
             var time = data.id;
@@ -146,35 +152,22 @@ $(document).ready(function (){
              g.selectAll('g')
              .data(aircrafts,d=>d.id)
              .append('path')
-             .attr('d',function(d){
+             .attr('d',function(d,i){
                 var old_d = d3.select(this).attr('d');
                 var x = getX(d);
                 var y = getY(d);
                 if(old_d==null || old_d==undefined){
-                    var d = "M"+x.toString()+" "+y.toString(); 
+                    var new_d = "M"+x.toString()+" "+y.toString(); 
                 } else {
-                    var d = old_d.split(" ").concat('L'+x.toString(),y.toString()).join(" ");
+                    var arr = old_d.split(" ");
+                    var new_d = arr.concat('L'+x.toString(),y.toString()).join(" ");
                 } 
-                return d
-            })
+                return new_d
+            }) 
+            .attr('fill','none')
+            .attr('fill-opacity','0')
             .attr('stroke',d=>d.color)
-            .attr('stroke-width','.5px');
-
-             //add path
-            
-
-            /*
-             var t = d3.timer(function(elapsed) {
-                if (elapsed > 2000) {
-                    // do someting
-                }
-                console.log('started again') 
-                t.restart();
-              }, 150);
-              */
-
-
-
+            .attr('stroke-width','.5px')
         });
 
         var button = d3.select('body')
@@ -183,9 +176,11 @@ $(document).ready(function (){
                  .attr('id','floating-button')
                  .text('Click me')
                  .on('click', function() { 
-                     var file = getFileByIndex(fi);
-                     d3.json(file,update);
                      fi++;
+                     var file = getFileByIndex(fi);
+                     if (file){
+                        return d3.json(file,update);
+                     }
                     });
 
         function getX(d){
@@ -218,51 +213,11 @@ $(document).ready(function (){
             var t = d3.transition().duration(750);
             var aircrafts = g.selectAll("g")
                              .data(aircrafts_data,d=>d.id);
-            // for exit
-            aircrafts.exit()
-                     .transition(t)
-                     .style("fill-opacity",1e-6)
-                     .remove();
-            // for update aircrafts
-            aircrafts.selectAll('circle')
-                     .transition(t)
-                     .attr('cx', getX)
-                     .attr('cy',getY)
-                     .attr('r',function(d){
-                        if (d.alt>10) {
-                            return Math.log(parseInt(d.alt)/1.25)/1.5;
-                        }else {
-                            return 0.5
-                        }
-                     })
-            aircrafts.selectAll('path')
-                    .attr('d',function(data){
-                        var old_d = d3.select(this).attr('d');
-                        return old_d; 
-                    })
-                    .transition(t)
-                    .attr('d',function(data){
-                        var old_d = d3.select(this).attr('d');
-                        var x = getX(data);
-                        var y = getY(data);
-                        if(old_d==null || old_d==undefined){
-                            var new_d = "M"+x+" "+y; 
-                        } else {
-                            var new_d = old_d.split(" ").concat('L'+x,y).join(" ");
-                        } 
-                        return new_d
-                    })
+            var aircraftsEnter = aircrafts.enter().append("g");
 
-                    .attr('stroke',d=>d.color)
-                    .attr('stroke-width','.5px')
-                    .attr('stroke-dasharray','4 1')
-                    .style('fill-opacity:0');
-                     
-        
-            aircrafts.select('circle')
-                     .enter()
-                     .append('circle')
-                     .transition(t)
+            // enter circle
+            aircraftsEnter.append('circle')
+                     // .transition(t)
                      .attr('cx', getX)
                      .attr('cy',getY)
                      .attr('r',function(d){
@@ -276,7 +231,7 @@ $(document).ready(function (){
                         return d.color;
                      })
                      .on('mouseover', function(d){
-                        comlementaryColor = 'hsl('+ (d.color+180) +',100%,50%)'
+                        d.complementaryColor = 'hsl('+ (d.color+180) +',100%,50%)'
         
                          d3.select(this).style('fill', '#3c3c3c')
                            .style('stroke', d.color)
@@ -309,26 +264,99 @@ $(document).ready(function (){
                            .transition().duration(10).ease(d3.easeLinear)
                            .style('display','none')
                            .style('background-color','#eeeeee')
+                      })
+                      .merge(aircrafts)
+                      .selectAll('circle').data(aircrafts_data,d=>d.id)
+                      // .transition(t)
+                      .attr('cx', getX)
+                      .attr('cy',getY)
+                      .attr('r',function(d){
+                         if (d.alt>10) {
+                             return Math.log(parseInt(d.alt)/1.25)/1.5;
+                         }else {
+                             return 0.5
+                         }
                       });
+
+            // enter path
+            aircraftsEnter.append('path')
+                          .attr('d',function(d){
+                                var old_d = d3.select(this).attr('g');
+                                var x = getX(d);
+                                var y = getY(d);
+                                if(old_d==null || old_d==undefined){
+                                    var d = "M"+x+" "+y; 
+                                } else {
+                                    var d = old_d.split(" ").concat('L'+x,y).join(" ");
+                                } 
+                                return d
+                            })
+                            .merge(aircrafts)
+                            .selectAll('path').data(aircrafts_data,d=>d.id)
+                            .attr('d',function(d,i){
+                                var old_d = d3.select(this).attr('d');
+                                var x = getX(d);
+                                var y = getY(d);
+                                if(old_d==null || old_d==undefined){
+                                    var new_d = "M"+x+" "+y; 
+                                } else {
+                                    var arr = old_d.split(" ");
+                                    var new_d = arr.concat('L'+x.toString(),y.toString()).join(" ");
+                                } 
+                                return new_d
+                            })
         
-            // for enter
-            aircrafts.select('path')
-                     .enter()
-                     .append('path')
-                     .attr('d',function(d){
-                        var old_d = this.attr('g');
-                        var x = getX(d);
-                        var y = getY(d);
-                        if(old_d==null || old_d==undefined){
-                            var d = "M"+x+" "+y; 
-                        } else {
-                            var d = old_d.split(" ").concat('L'+x,y).join(" ");
-                        } 
-                        return d
-                    })
-                    .attr('stroke',d=>d.color)
-                    .attr('stroke-width',1.5)
-                    .attr('fill','none');
+                            .attr('stroke',d=>d.color)
+                            .attr('stroke-width','.5px')
+                            .attr('stroke-dasharray','4 2 2')
+                            .attr('stroke-opacity','0.75')
+                            .attr('fill-opacity','0')
+                            /*
+                            .attr('k',function(d){
+                                var current_d = d3.select(this).attr('d');
+                                if(current_d.split(" ").length<4){
+                                    k = ""
+                                } else {
+                                    var arr = current_d.split(" ");
+        
+                                    var y2_str = arr[arr.length-1];
+                                    var x2_str = arr[arr.length-2];
+                                    x2_str = x2_str.substring(1,x2_str.length);
+                                    var y2 = parseFloat(y2_str);
+                                    var x2 = parseFloat(x2_str);
+        
+                                    var y1_str = arr[arr.length-3];
+                                    var x1_str = arr[arr.length-4];
+                                    x1_str = x1_str.substring(1,x1_str.length);
+                                    var y1 = parseFloat(y1_str);
+                                    var x1 = parseFloat(x1_str); 
+                                    
+                                    if (x1==x2){
+                                        k = NaN;
+                                    } else {
+                                        k = (y2-y1)/(x2-x1);
+                                    }
+                                }  
+                                return k
+                            })*/;
+
+            // for exit
+            aircrafts.exit()
+                     .transition(t)
+                     .style("fill-opacity",1e-6)
+                     .remove();
+            
+            /*        
+            aircrafts.select('line')
+            .enter()
+            .append('line')
+            .attr('x1', function(d){
+                var d = d3.select(this.parentNode).select(g).attr('d');
+                var d_arr = d.split(" ")
+                return 0 
+            })
+            */
+     
         }
 
     });
