@@ -84,7 +84,8 @@ $(document).ready(function (){
         
         d3.json(getFileByIndex(fi), function(error,data){
             if (error) console.log(error);
-            var aircrafts = data.data;
+            data.data = dataFilter(data.data);
+            var aircrafts = data.data; 
             var time = data.id;
             var hue = 0;
 
@@ -163,12 +164,20 @@ $(document).ready(function (){
                     var new_d = arr.concat('L'+x.toString(),y.toString()).join(" ");
                 } 
                 return new_d
-            }) 
+            })
+            .attr('k','') 
             .attr('fill','none')
             .attr('fill-opacity','0')
             .attr('stroke',d=>d.color)
             .attr('stroke-width','.5px')
+
+             // add line
+             g.selectAll('g')
+             .data(aircrafts,d=>d.id)
+             .append('line')
+
         });
+           
 
         var button = d3.select('body')
                  .append('button')
@@ -199,7 +208,7 @@ $(document).ready(function (){
             var w = 1920;
             var h = 960;
             if (error) console.log(error);
-            var aircrafts_data = data.data;
+            var aircrafts_data = dataFilter(data.data);
             var hue = 0;
             var svg = d3.select('body').select('svg');
 
@@ -291,6 +300,7 @@ $(document).ready(function (){
                                 } 
                                 return d
                             })
+                            .attr('k','')
                             .merge(aircrafts)
                             .selectAll('path').data(aircrafts_data,d=>d.id)
                             .attr('d',function(d,i){
@@ -305,40 +315,100 @@ $(document).ready(function (){
                                 } 
                                 return new_d
                             })
-        
+                            .attr('k',function(d,i){
+                                var  k = d3.select(this).attr('k');
+                                var current_d = d3.select(this).attr('d');
+                                var arr = current_d.split(' ');
+                                if (arr.length>3){
+                                    var x1_str = arr[arr.length-4];
+                                    var y1_str = arr[arr.length-3];
+                                    var x2_str = arr[arr.length-2];
+                                    var y2_str = arr[arr.length-1];
+                                    x1_str = x1_str.substring(1,x1_str.length);
+                                    x2_str = x2_str.substring(1,x2_str.length);
+                                    var x1 = parseFloat(x1_str);
+                                    var y1 = parseFloat(y1_str);
+                                    var x2 = parseFloat(x2_str);
+                                    var y2 = parseFloat(y2_str);
+                                    if (x1!=x2){
+                                        k = (y2-y1)/(x2-x1)
+                                    } else if (x1==x2 && y1!=y2){
+                                        k = NaN
+                                    } 
+                                }
+                                return k
+                            })
                             .attr('stroke',d=>d.color)
                             .attr('stroke-width','.5px')
                             .attr('stroke-dasharray','4 2 2')
                             .attr('stroke-opacity','0.75')
-                            .attr('fill-opacity','0')
-                            /*
-                            .attr('k',function(d){
-                                var current_d = d3.select(this).attr('d');
-                                if(current_d.split(" ").length<4){
-                                    k = ""
-                                } else {
-                                    var arr = current_d.split(" ");
-        
-                                    var y2_str = arr[arr.length-1];
-                                    var x2_str = arr[arr.length-2];
-                                    x2_str = x2_str.substring(1,x2_str.length);
-                                    var y2 = parseFloat(y2_str);
-                                    var x2 = parseFloat(x2_str);
-        
-                                    var y1_str = arr[arr.length-3];
-                                    var x1_str = arr[arr.length-4];
-                                    x1_str = x1_str.substring(1,x1_str.length);
-                                    var y1 = parseFloat(y1_str);
-                                    var x1 = parseFloat(x1_str); 
-                                    
-                                    if (x1==x2){
-                                        k = NaN;
-                                    } else {
-                                        k = (y2-y1)/(x2-x1);
-                                    }
-                                }  
-                                return k
-                            })*/;
+                            .attr('fill-opacity','0');
+                            
+            // enter line as trends
+            aircraftsEnter.append('line')
+                          .merge(aircrafts)
+                          .selectAll('line').data(aircrafts_data,d=>d.id)
+                          .attr('x1', function(d,i){
+                                  var x1 = getX(d);
+                                  return x1.toString();
+                          })
+                          .attr('x2', function(d,i){
+                            var current_k = d3.select(this.parentNode).select('path').attr('k');
+                            var current_d = d3.select(this.parentNode).select('path').attr('d'); 
+                            var arr = current_d.split(" ");
+                            if (current_k!="" && arr.length>3){
+                              var x1_str = arr[arr.length-4];
+                              var y1_str = arr[arr.length-3];
+                              var x2_str = arr[arr.length-2];
+                              var y2_str = arr[arr.length-1];
+                              x1_str = x1_str.substring(1,x1_str.length);
+                              x2_str = x2_str.substring(1,x2_str.length);
+                              var x1 = parseFloat(x1_str);
+                              var y1 = parseFloat(y1_str);
+                              var x2 = parseFloat(x2_str);
+                              var y2 = parseFloat(y2_str);
+                              if (current_k!=NaN){
+                                  x2 = x2+(x2-x1)*0.75
+                              } // else x2 remains
+                            } else {
+                                var x2 = getX(d);
+                            }
+                            return x2.toString();
+                          })
+                          .attr('y1',function(d,i){
+                                var y1 = getY(d);
+                                return y1.toString();   
+                          })
+                          .attr('y2',function(d,i){
+                            var current_k = d3.select(this.parentNode).select('path').attr('k');
+                            var current_d = d3.select(this.parentNode).select('path').attr('d'); 
+                            var arr = current_d.split(" ");
+                            if (current_k!="" && arr.length>3){
+                              var x1_str = arr[arr.length-4];
+                              var y1_str = arr[arr.length-3];
+                              var x2_str = arr[arr.length-2];
+                              var y2_str = arr[arr.length-1];
+                              x1_str = x1_str.substring(1,x1_str.length);
+                              x2_str = x2_str.substring(1,x2_str.length);
+                              var x1 = parseFloat(x1_str);
+                              var y1 = parseFloat(y1_str);
+                              var x2 = parseFloat(x2_str);
+                              var y2 = parseFloat(y2_str);
+                              if (current_k!=NaN){
+                                  y2 = y2 + current_k*(x2-x1)*0.75
+                              } else {
+                                  y2 = y2 + (y2-y1)*0.75
+                              }
+                            } else {
+                                var y2 = getY(d);
+                            }
+                            return y2.toString();
+                          })
+                          .attr('stroke','green')
+                          .attr('stroke-width','2px')
+                          .attr('fill','none')
+                          .attr('fill-opacity','0')
+                    
 
             // for exit
             aircrafts.exit()
@@ -387,5 +457,10 @@ function getFileByIndex(index){
     }
     return  path+timeConvert(index)+'Z.json'  
 
+}
+
+function dataFilter(data){
+    var res = data.filter(d=> d.long!=-1 && d.lat!=-1 )
+    return res
 }
   
