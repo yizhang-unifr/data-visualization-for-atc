@@ -88,6 +88,8 @@ $(document).ready(function (){
             var aircrafts = data.data; 
             var time = data.id;
             var hue = 0;
+            topTen = topNPairs(aircrafts,10);
+            console.log(topTen);
 
             aircrafts.map(function(d){
                 hue += 0.618;
@@ -463,4 +465,73 @@ function dataFilter(data){
     var res = data.filter(d=> d.long!=-1 && d.lat!=-1 )
     return res
 }
-  
+
+
+function distance(lat1, lon1, lat2, lon2, unit='M') {
+	if ((lat1 == lat2) && (lon1 == lon2)) {
+		return 0;
+	}
+	else {
+		var radlat1 = Math.PI * lat1/180;
+		var radlat2 = Math.PI * lat2/180;
+		var theta = lon1-lon2;
+		var radtheta = Math.PI * theta/180;
+		var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+		if (dist > 1) {
+			dist = 1;
+		}
+		dist = Math.acos(dist);
+		dist = dist * 180/Math.PI;
+		dist = dist * 60 * 1.1515;
+		if (unit=="K") { dist = dist * 1.609344 }
+		if (unit=="N") { dist = dist * 0.8684 }
+		return dist;
+	}
+}
+
+function distance3D(lat1,lon1,alt1,lat2,lon2,alt2){ // all units are km
+    var distance2D = distance(lat1, lon1, lat2, lon2, 'K');
+    var res = Math.sqrt(Math.pow((alt2-alt1),2)+Math.pow(distance2D,2))
+    return res
+}
+
+function distOfAC(d1,d2){
+    if (d1.alt >=0 && d2.alt>=0 ){
+        return distance3D(d1.lat,d1.long,d1.alt*0.0003048,d2.lat,d2.long,d2.alt*0.0003048) // 1 feet = 0.0003048 km
+    } else {
+        return distance(d1.lat,d1.long,d2.lat,d2.long,'K')
+    }
+}
+
+function topNPairs(data, n){
+    var topN = new Array();
+    for (i=0;i<data.length;i++){
+        var ref = data.shift();
+        for (j=0; j<data.length; j++){
+            var d1 = ref
+            var d2 = data[j]
+            var dist = distOfAC(d1,d2)
+            var ele = {
+                d1:d1,
+                d2:d2,
+                dist:dist
+            }
+            if (topN.length<n){
+                topN.push(ele)
+                topN.sort(function(a,b){
+                    return a.dist-b.dist
+                });
+            } else {
+                if (dist<topN[topN.length-1].dist){
+                    topN.pop();
+                    topN.push(ele);
+                    topN.sort(function(a,b){
+                        return a.dist-b.dist
+                    });
+                } 
+            }
+                
+        }
+    }
+    return topN;
+}
