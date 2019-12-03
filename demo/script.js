@@ -1,7 +1,7 @@
 $(document).ready(function (){
-    var w = 1920;
-    var h = 960;
-    var fi = 0;
+    var w = 1080;
+    var h = 720;
+    var fi = 360;
 
     var projection = d3.geoConicConformal()
     .parallels([35, 65])
@@ -13,15 +13,11 @@ $(document).ready(function (){
     .precision(100);
 
     var path = d3.geoPath().projection(projection);
-    var svg = d3.select('body')
+    var svg = d3.select('#map')
                 .append('svg')
                 .attr('width',w)
                 .attr('height',h);
-
-    
- 
-
-                 
+    var rank = d3.select('#rank')
 
     svg.append('rect')
        .attr('width',w)
@@ -89,28 +85,77 @@ $(document).ready(function (){
             var time = data.id;
             var hue = 0;
             topTen = topNPairs(aircrafts,10);
+            
             console.log(topTen);
 
+            var tbody = rank.select('table')
+            .append('tbody')
+            var rows = tbody.selectAll('tr')
+            .data(topTen)
+            .enter()
+            .append('tr');
+
+            var cells = rows.selectAll('td')
+            .data(function(d,i){
+                var index = i+1;
+                var d1 = d.d1.id;
+                var d2 = d.d2.id;
+                var dist = d.dist;
+                return [i+1,d1,d2,dist];
+            })
+            .enter()
+            .append('td')
+            .text(function(d){
+                return d;
+            });
+
+            var stca = getSTCA(topTen);
+            // var mtca = getMTCA(topTen);
+            
             aircrafts.map(function(d){
-                hue += 0.618;
+                hue = d.alt*210/48000+40;
                 d.color = 'hsl(' + hue + ', 100%, 50%)';
                 d.complementaryColor = 'hsl(' + (hue+180) + ', 100%, 50%)'; 
             });
 
-            g.selectAll('g')
+            g.append('g')
+            .attr('id','stca')
+            .selectAll('path')
+            .data(stca).enter()
+            .append('path')
+            .attr('d',function(d,i){
+                var circumference = 6371000 * Math.PI * 2;
+                var angle = 5000 / circumference * 360;
+                var circle = d3.geoCircle().center([d.long,d.lat]).radius(angle)
+                console.log(circle())
+                return path(circle());
+            })
+            .attr('class','flowline')
+            .attr('stroke','rgba(255, 174, 66, 1)')
+            .attr('stroke-width','1')
+            .attr('fill','none')
+            .attr('fill-opacity','0')
+            .style('stroke','red')
+            .style('stroke-width','0.75px')
+            .style('stroke-dasharray','2 2 2')
+            
+        
+
+            g.selectAll('.flight')
             .data(aircrafts,d=>d.id)
             .enter()
             .append('g')
             .attr('id', d=>d.id)
+            .attr('class','flight')
             //add anchor of aircrafts
             .append('circle')
             .attr('cx', getX)
             .attr('cy',getY)
             .attr('r',function(d){
                 if (d.alt>10) {
-                    return Math.log(parseInt(d.alt)/1.25)/1.5;
+                    return Math.log(parseInt(d.alt)/1.25)/4;
                 }else {
-                    return 0.5
+                    return 0.25
                 }
             })
             .style('fill', function(d){
@@ -151,8 +196,9 @@ $(document).ready(function (){
                    .style('display','none')
                    .style('background-color','#eeeeee')
              });
+             
             //add path
-             g.selectAll('g')
+             g.selectAll('.flight')
              .data(aircrafts,d=>d.id)
              .append('path')
              .attr('d',function(d,i){
@@ -174,14 +220,24 @@ $(document).ready(function (){
             .attr('stroke-width','.5px')
 
              // add line
-             g.selectAll('g')
+             g.selectAll('.flight')
              .data(aircrafts,d=>d.id)
              .append('line')
 
+             d3.selectAll(".flowline")
+                     .each(animate);
+             
+
         });
+        
+
+        
+        
+
+        
            
 
-        var button = d3.select('body')
+        var button = d3.select('#map')
                  .append('button')
                  .attr('type','button')
                  .attr('id','floating-button')
@@ -207,24 +263,82 @@ $(document).ready(function (){
         }
 
         function update(error,data) {
-            var w = 1920;
-            var h = 960;
+            // var w = 1080;
+            // var h = 720;
             if (error) console.log(error);
             var aircrafts_data = dataFilter(data.data);
             var hue = 0;
-            var svg = d3.select('body').select('svg');
+            var svg = d3.select('#map').select('svg');
+
+            var topTen = topNPairs(aircrafts_data,10);
+            console.log(topTen);
+            
+            rank.select('table')
+            .selectAll('tbody').remove();
+
+            var tbody = rank.select('table')
+            .append('tbody')
+            var rows = tbody.selectAll('tr')
+            .data(topTen)
+            .enter()
+            .append('tr');
+
+            var cells = rows.selectAll('td')
+            .data(function(d,i){
+                var index = i+1;
+                var d1 = d.d1.id;
+                var d2 = d.d2.id;
+                var dist = d.dist;
+                return [i+1,d1,d2,dist];
+            })
+            .enter()
+            .append('td')
+            .text(function(d){
+                return d;
+            });
 
             var g = svg.select('g');
+            
+
+
+
             aircrafts_data.map(function(d){
-                hue += 0.618;
+                hue = d.alt*210/48000+40;
                 d.color = 'hsl(' + hue + ', 100%, 50%)';
                 d.complementaryColor = 'hsl(' + (hue+180) + ', 100%, 50%)'; 
             });
         
             var t = d3.transition().duration(750);
-            var aircrafts = g.selectAll("g")
+            var aircrafts = g.selectAll(".flight")
                              .data(aircrafts_data,d=>d.id);
-            var aircraftsEnter = aircrafts.enter().append("g");
+            var aircraftsEnter = aircrafts
+                                 .enter()
+                                 .append("g")
+                                .attr('class','flight')
+                                .attr('id',function(d){
+                                    return d.id
+                                });
+
+            var stca_data = getSTCA(topTen);
+
+            var stca = g.select('#stca')
+            stca.selectAll('path')
+            .data(stca_data)
+            .attr('d',function(d,i){
+                var circumference = 6371000 * Math.PI * 2;
+                var angle = 5000 / circumference * 360;
+                var circle = d3.geoCircle().center([d.long,d.lat]).radius(angle)
+                console.log(circle())
+                return path(circle());
+            })
+            .attr('class','flowline')
+            .attr('stroke','rgba(255, 174, 66, 1)')
+            .attr('stroke-width','1')
+            .attr('fill','none')
+            .attr('fill-opacity','0')
+            .style('stroke','red')
+            .style('stroke-width','0.75px')
+            .style('stroke-dasharray','2 1 1')
 
             // enter circle
             aircraftsEnter.append('circle')
@@ -233,9 +347,9 @@ $(document).ready(function (){
                      .attr('cy',getY)
                      .attr('r',function(d){
                         if (d.alt>10) {
-                            return Math.log(parseInt(d.alt)/1.25)/1.5;
+                            return Math.log(parseInt(d.alt)/1.25)/4;
                         }else {
-                            return 0.5
+                            return 0.25
                         }
                      })
                      .style('fill', function(d){
@@ -283,9 +397,9 @@ $(document).ready(function (){
                       .attr('cy',getY)
                       .attr('r',function(d){
                          if (d.alt>10) {
-                             return Math.log(parseInt(d.alt)/1.25)/1.5;
+                             return Math.log(parseInt(d.alt)/1.25)/4;
                          }else {
-                             return 0.5
+                             return 0.25
                          }
                       });
 
@@ -342,7 +456,7 @@ $(document).ready(function (){
                             })
                             .attr('stroke',d=>d.color)
                             .attr('stroke-width','.5px')
-                            .attr('stroke-dasharray','4 2 2')
+                            .attr('stroke-dasharray','2 2 2')
                             .attr('stroke-opacity','0.75')
                             .attr('fill-opacity','0');
                             
@@ -370,7 +484,7 @@ $(document).ready(function (){
                               var x2 = parseFloat(x2_str);
                               var y2 = parseFloat(y2_str);
                               if (current_k!=NaN){
-                                  x2 = x2+(x2-x1)*0.75
+                                  x2 = x2+(x2-x1)*0.25
                               } // else x2 remains
                             } else {
                                 var x2 = getX(d);
@@ -397,9 +511,9 @@ $(document).ready(function (){
                               var x2 = parseFloat(x2_str);
                               var y2 = parseFloat(y2_str);
                               if (current_k!=NaN){
-                                  y2 = y2 + current_k*(x2-x1)*0.75
+                                  y2 = y2 + current_k*(x2-x1)*0.25
                               } else {
-                                  y2 = y2 + (y2-y1)*0.75
+                                  y2 = y2 + (y2-y1)*0.25
                               }
                             } else {
                                 var y2 = getY(d);
@@ -407,7 +521,7 @@ $(document).ready(function (){
                             return y2.toString();
                           })
                           .attr('stroke','green')
-                          .attr('stroke-width','2px')
+                          .attr('stroke-width','0.5px')
                           .attr('fill','none')
                           .attr('fill-opacity','0')
                     
@@ -418,6 +532,7 @@ $(document).ready(function (){
                      .style("fill-opacity",1e-6)
                      .remove();
             
+                     
             /*        
             aircrafts.select('line')
             .enter()
@@ -434,8 +549,6 @@ $(document).ready(function (){
     });
 
 });
-
-
 
 function getFileByIndex(index){
     var path = '../atc-data/';
@@ -503,35 +616,62 @@ function distOfAC(d1,d2){
     }
 }
 
-function topNPairs(data, n){
+function topNPairs(original_data, n){
+    var data = original_data.slice(0)
     var topN = new Array();
-    for (i=0;i<data.length;i++){
-        var ref = data.shift();
-        for (j=0; j<data.length; j++){
-            var d1 = ref
-            var d2 = data[j]
-            var dist = distOfAC(d1,d2)
-            var ele = {
-                d1:d1,
-                d2:d2,
-                dist:dist
+        for (i=0;i<data.length;i++){
+            var ref = data.shift();
+            for (j=0; j<data.length; j++){
+                var d1 = ref
+                var d2 = data[j]
+                var dist = distOfAC(d1,d2)
+                var ele = {
+                    d1:d1,
+                    d2:d2,
+                    dist:dist
+                }
+                    if (topN.length<n){
+                        topN.push(ele)
+                        topN.sort(function(a,b){
+                            return a.dist-b.dist
+                        });
+                    } else {
+                        if (dist<topN[topN.length-1].dist){
+                            topN.pop();
+                            topN.push(ele);
+                            topN.sort(function(a,b){
+                                return a.dist-b.dist
+                            });
+                        } 
+                    }
             }
-            if (topN.length<n){
-                topN.push(ele)
-                topN.sort(function(a,b){
-                    return a.dist-b.dist
-                });
-            } else {
-                if (dist<topN[topN.length-1].dist){
-                    topN.pop();
-                    topN.push(ele);
-                    topN.sort(function(a,b){
-                        return a.dist-b.dist
-                    });
-                } 
-            }
-                
         }
-    }
     return topN;
 }
+
+function getSTCA(top){
+    var arr = top.filter(d=>d.dist<5);
+    var res = [];
+    arr.forEach(e => {
+        var d1 = e.d1;
+        var d2 = e.d2;
+        d1.stca = e.dist;
+        d2.stca = e.dist;
+        res.push(d1);
+        res.push(d2);
+    });
+    return res;
+    
+}
+
+function animate(){
+    d3.select(this)
+      .transition()
+      .ease(d3.easeLinear)
+      .duration(1000)
+      .styleTween("stroke-dashoffset", function() {
+        return d3.interpolate(0, 14);
+      })
+      .on('end', animate);
+  }
+
