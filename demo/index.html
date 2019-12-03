@@ -20,8 +20,32 @@
     </head>
     <body>
         <h1 class="text-center">Data Visualization I - ATC</h1>
-
-        <div id="map"></div>
+        <div class="row">
+            
+            <div class="col-xs-9 col-sm-9 col-md-9 col-lg-9">
+                <div id="map"></div>
+            </div>
+            
+            <div class="col-xs-3 col-sm-3 col-md-3 col-lg-3">
+                <div id = "rank">
+                    <table class="table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>ID_1</th>
+                            <th>ID_2</th>
+                            <th>Distance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          
+                        </tbody>
+                      </table>
+                </div>
+            </div>
+            
+        </div>
+        
 
         <div id="tooltip">
             Id: <span id="id" class="info"></span> <br>
@@ -33,6 +57,8 @@
             Longtitude: <span id="long" class="info"></span> <br>
             Time: <span id="time" class="info"></span> <br>
         </div>
+
+        
 
         <!-- jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
